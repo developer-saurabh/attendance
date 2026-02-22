@@ -1,3 +1,4 @@
+import 'package:attendance/pages/faculty/attendance_analytics_page.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'manage_students_page.dart';
@@ -16,6 +17,7 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
   final _pages = const [
     ManageStudentsPage(),
     MarkAttendancePage(),
+    AttendanceAnalyticsPage(),
   ];
 
   @override
@@ -30,7 +32,9 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(colors: [primaryA, primaryB]),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 8)],
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 8),
+            ],
           ),
           child: AppBar(
             backgroundColor: Colors.transparent,
@@ -41,7 +45,8 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                 icon: const Icon(Icons.logout_outlined),
                 onPressed: () async {
                   await AuthService.instance.signOut();
-                  if (context.mounted) Navigator.pushReplacementNamed(context, '/');
+                  if (context.mounted)
+                    Navigator.pushReplacementNamed(context, '/');
                 },
                 tooltip: 'Logout',
               ),
@@ -64,20 +69,40 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                     // profile card
                     Card(
                       margin: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            CircleAvatar(radius: 28, backgroundColor: primaryB, child: const Icon(Icons.person, color: Colors.white)),
+                            CircleAvatar(
+                              radius: 28,
+                              backgroundColor: primaryB,
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: const [
-                                  Text('Faculty', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    'Faculty',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   SizedBox(height: 4),
-                                  Text('Manage Attendance', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                  Text(
+                                    'Manage Attendance',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -101,10 +126,20 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                       onTap: () => setState(() => _selectedIndex = 1),
                     ),
 
+                    _NavTile(
+                      icon: Icons.analytics,
+                      label: 'Attendance Analytics',
+                      selected: _selectedIndex == 2,
+                      onTap: () => setState(() => _selectedIndex = 2),
+                    ),
+
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.all(12.0),
-                      child: Text('Attendance System', style: TextStyle(color: Colors.grey[600])),
+                      child: Text(
+                        'Attendance System',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
                     ),
                   ],
                 ),
@@ -137,13 +172,27 @@ class _NavTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _NavTile({required this.icon, required this.label, required this.selected, required this.onTap, super.key});
+  const _NavTile({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: selected ? Theme.of(context).primaryColor : Colors.grey[700]),
-      title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w700 : FontWeight.w500)),
+      leading: Icon(
+        icon,
+        color: selected ? Theme.of(context).primaryColor : Colors.grey[700],
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
       selected: selected,
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

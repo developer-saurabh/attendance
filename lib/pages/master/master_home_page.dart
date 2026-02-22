@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'create_faculty_page.dart';
 import 'master_view_attendance_page.dart';
+import 'manage_subjects_page.dart';
 
 class MasterHomePage extends StatelessWidget {
   const MasterHomePage({super.key});
@@ -47,13 +48,14 @@ class MasterHomePage extends StatelessWidget {
           const VerticalDivider(width: 1),
           Expanded(
             child: DefaultTabController(
-              length: 2,
+              length: 3,
               child: Column(
                 children: [
                   const TabBar(
                     tabs: [
                       Tab(text: 'Manage Faculty'),
                       Tab(text: 'View Attendance'),
+                      Tab(text: 'Subjects'),
                     ],
                   ),
                   Expanded(
@@ -64,29 +66,34 @@ class MasterHomePage extends StatelessWidget {
                           children: [
                             Expanded(
                               child: StreamBuilder<QuerySnapshot>(
-                                stream: db
-                                    .collection('users')
-                                    .where('role', isEqualTo: 'faculty')
-                                    .snapshots(),
+                                stream:
+                                    db
+                                        .collection('users')
+                                        .where('role', isEqualTo: 'faculty')
+                                        .snapshots(),
                                 builder: (context, snapshot) {
                                   if (snapshot.hasError) {
                                     return const Center(
-                                        child: Text('Error loading faculty'));
+                                      child: Text('Error loading faculty'),
+                                    );
                                   }
                                   if (!snapshot.hasData) {
                                     return const Center(
-                                        child: CircularProgressIndicator());
+                                      child: CircularProgressIndicator(),
+                                    );
                                   }
                                   final docs = snapshot.data!.docs;
                                   if (docs.isEmpty) {
                                     return const Center(
-                                        child: Text('No faculty found'));
+                                      child: Text('No faculty found'),
+                                    );
                                   }
                                   return ListView.builder(
                                     itemCount: docs.length,
                                     itemBuilder: (context, index) {
-                                      final data = docs[index].data()
-                                          as Map<String, dynamic>;
+                                      final data =
+                                          docs[index].data()
+                                              as Map<String, dynamic>;
                                       return ListTile(
                                         title: Text(data['name'] ?? 'No name'),
                                         subtitle: Text(data['email'] ?? ''),
@@ -106,8 +113,7 @@ class MasterHomePage extends StatelessWidget {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          const CreateFacultyPage(),
+                                      builder: (_) => const CreateFacultyPage(),
                                     ),
                                   );
                                 },
@@ -118,6 +124,9 @@ class MasterHomePage extends StatelessWidget {
 
                         // Tab 2: Attendance sessions
                         const MasterViewAttendancePage(),
+
+                        // 3 Subjects
+                        const ManageSubjectsPage(),
                       ],
                     ),
                   ),

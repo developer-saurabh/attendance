@@ -53,13 +53,15 @@ class FirestoreService {
     required int semester,
     required String section,
     required DateTime date,
-    required Map<String, bool> studentPresence, // studentId -> present?
+    required Map<String, bool> studentPresence, required String subjectId, // studentId -> present?
   }) async {
     final sessionRef = await _db.collection('attendance_sessions').add({
       'facultyId': facultyId,
+      'subjectId': subjectId,
       'year': year,
       'semester': semester,
       'section': section,
+      'studentPresence': studentPresence,
       'date': Timestamp.fromDate(date),
     });
 

@@ -115,20 +115,37 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
               alignment: Alignment.centerRight,
               child: ElevatedButton(
                 onPressed: () async {
-                  await svc.markAttendance(
-                    facultyId: user.uid,
-                    year: _selectedSubject!['year'],
-                    semester: _selectedSubject!['semester'],
-                    section: _sectionC.text,
-                    date: _selectedDate,
-                    studentPresence: _presence,
-                  );
+                  try {
+                    print("=== ATTENDANCE SAVE STARTED ===");
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Attendance saved')),
+                    print("Faculty ID: ${user.uid}");
+                    print("Year: ${_selectedSubject!['year']}");
+                    print("Semester: ${_selectedSubject!['semester']}");
+                    print("Section: ${_sectionC.text}");
+                    print("Date: $_selectedDate");
+                    print("Subject Id: $_selectedSubjectId");
+                    print("Student Presence Map:");
+                    print(_presence);
+
+                    await svc.markAttendance(
+                      facultyId: user.uid,
+                      subjectId: _selectedSubjectId!,
+                      year: _selectedSubject!['year'],
+                      semester: _selectedSubject!['semester'],
+                      section: _sectionC.text,
+                      date: _selectedDate,
+                      studentPresence: _presence,
                     );
+
+                    print("=== ATTENDANCE SAVED SUCCESSFULLY ===");
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Attendance saved')),
+                      );
+                    }
+                  } catch (e) {
+                    print("❌ ERROR SAVING ATTENDANCE: $e");
                   }
                 },
                 child: const Text("Save Attendance"),

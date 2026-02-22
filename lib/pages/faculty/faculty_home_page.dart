@@ -1,6 +1,9 @@
 import 'package:attendance/pages/faculty/attendance_analytics_page.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import 'faculty_event_proposal_page.dart';
+import 'faculty_inventory_page.dart';
+import 'faculty_purchase_request_page.dart';
 import 'manage_students_page.dart';
 import 'mark_attendance_page.dart';
 import 'faculty_daily_diary_page.dart';
@@ -20,6 +23,9 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
     MarkAttendancePage(),
     AttendanceAnalyticsPage(),
     FacultyDailyDiaryPage(),
+    FacultyInventoryPage(),
+    FacultyPurchaseRequestPage(),
+    FacultyEventProposalPage (),
   ];
 
   @override
@@ -141,6 +147,27 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                       label: 'Daily Diary',
                       selected: _selectedIndex == 3,
                       onTap: () => setState(() => _selectedIndex = 3),
+                    ),
+
+                    _NavTile(
+                      icon: Icons.inventory,
+                      label: 'Inventory',
+                      selected: _selectedIndex == 4,
+                      onTap: () => setState(() => _selectedIndex = 4),
+                    ),
+
+                    _NavTile(
+                      icon: Icons.request_page,
+                      label: 'Purchase Request',
+                      selected: _selectedIndex == 5,
+                      onTap: () => setState(() => _selectedIndex = 5),
+                    ),
+
+                    _NavTile(
+                      icon: Icons.event_available_sharp,
+                      label: 'Event Request',
+                      selected: _selectedIndex == 6,
+                      onTap: () => setState(() => _selectedIndex = 6),
                     ),
 
                     const Spacer(),

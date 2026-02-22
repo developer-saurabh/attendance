@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'create_faculty_page.dart';
 import 'master_daily_diary_page.dart';
+import 'master_event_management_page.dart';
+import 'master_inventory_page.dart';
+import 'master_purchase_requests_page.dart';
 import 'master_view_attendance_page.dart';
 import 'manage_subjects_page.dart';
 
@@ -49,7 +52,7 @@ class MasterHomePage extends StatelessWidget {
           const VerticalDivider(width: 1),
           Expanded(
             child: DefaultTabController(
-              length: 4,
+              length: 7,
               child: Column(
                 children: [
                   const TabBar(
@@ -58,6 +61,9 @@ class MasterHomePage extends StatelessWidget {
                       Tab(text: 'View Attendance'),
                       Tab(text: 'Subjects'),
                       Tab(text: 'Daily Diary'),
+                      Tab(text: 'Inventory'),
+                      Tab(text: 'Inventory Approval'),
+                      Tab(text: 'Events'),
                     ],
                   ),
                   Expanded(
@@ -131,6 +137,12 @@ class MasterHomePage extends StatelessWidget {
                         const ManageSubjectsPage(),
 
                         const MasterDailyDiaryPage(),
+
+                        const MasterInventoryPage(),
+
+                        const MasterPurchaseRequestsPage(),
+                        const MasterEventManagementPage (),
+
                       ],
                     ),
                   ),

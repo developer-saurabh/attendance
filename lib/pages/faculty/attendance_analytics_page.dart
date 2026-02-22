@@ -15,6 +15,7 @@ class AttendanceAnalyticsPage extends StatefulWidget {
 
 class _AttendanceAnalyticsPageState
     extends State<AttendanceAnalyticsPage> {
+
   String? _selectedSubjectId;
 
   @override
@@ -26,41 +27,33 @@ class _AttendanceAnalyticsPageState
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+
           /// SUBJECT DROPDOWN
           StreamBuilder<DocumentSnapshot>(
             stream: db.collection('users').doc(user.uid).snapshots(),
             builder: (context, userSnap) {
+
               if (!userSnap.hasData) {
-                return const Center(
-                    child: CircularProgressIndicator());
+                return const CircularProgressIndicator();
               }
 
-              final data =
-              userSnap.data!.data() as Map<String, dynamic>?;
-
-              if (data == null) {
-                return const Text("User data not found");
-              }
+              final userData =
+              userSnap.data!.data() as Map<String, dynamic>;
 
               final assigned =
-              List<String>.from(data['assignedSubjects'] ?? []);
+              List<String>.from(userData['assignedSubjects'] ?? []);
 
               if (assigned.isEmpty) {
-                return const Text(
-                  "No subjects assigned.",
-                  style: TextStyle(color: Colors.red),
-                );
+                return const Text("No subjects assigned");
               }
-
-              final limited =
-              assigned.length > 10 ? assigned.sublist(0, 10) : assigned;
 
               return StreamBuilder<QuerySnapshot>(
                 stream: db
                     .collection('subjects')
-                    .where(FieldPath.documentId, whereIn: limited)
+                    .where(FieldPath.documentId, whereIn: assigned)
                     .snapshots(),
                 builder: (context, subjectSnap) {
+
                   if (!subjectSnap.hasData) {
                     return const CircularProgressIndicator();
                   }
@@ -76,7 +69,7 @@ class _AttendanceAnalyticsPageState
                       doc.data() as Map<String, dynamic>;
                       return DropdownMenuItem(
                         value: doc.id,
-                        child: Text(d['name'] ?? ''),
+                        child: Text(d['name']),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -106,184 +99,211 @@ class _AttendanceAnalyticsPageState
           .collection('attendance_sessions')
           .where('facultyId', isEqualTo: user.uid)
           .where('subjectId', isEqualTo: subjectId)
-          .orderBy('date')
           .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-              child: CircularProgressIndicator());
+      builder: (context, attendanceSnap) {
+
+        if (!attendanceSnap.hasData) {
+          return const Center(child: CircularProgressIndicator());
         }
 
-        final sessions = snapshot.data!.docs;
+        final sessions = attendanceSnap.data!.docs;
 
         if (sessions.isEmpty) {
-          return const Center(
-              child: Text("No attendance history"));
+          return const Center(child: Text("No attendance data"));
         }
 
-        Map<String, int> presentCount = {};
-        Map<String, int> totalCount = {};
-        Map<String, int> monthlyCount = {};
+        return StreamBuilder<QuerySnapshot>(
+          stream: db.collection('students').snapshots(),
+          builder: (context, studentSnap) {
 
-        for (var doc in sessions) {
-          final data = doc.data() as Map<String, dynamic>;
-
-          final date =
-          (data['date'] as Timestamp).toDate();
-          final monthKey =
-              "${date.year}-${date.month.toString().padLeft(2, '0')}";
-
-          monthlyCount[monthKey] =
-              (monthlyCount[monthKey] ?? 0) + 1;
-
-          final presence =
-          Map<String, dynamic>.from(data['studentPresence']);
-
-          presence.forEach((studentId, isPresent) {
-            totalCount[studentId] =
-                (totalCount[studentId] ?? 0) + 1;
-
-            if (isPresent == true) {
-              presentCount[studentId] =
-                  (presentCount[studentId] ?? 0) + 1;
+            if (!studentSnap.hasData) {
+              return const Center(child: CircularProgressIndicator());
             }
-          });
-        }
 
-        final rows = totalCount.keys.map((studentId) {
-          final total = totalCount[studentId]!;
-          final present = presentCount[studentId] ?? 0;
-          final percent =
-          ((present / total) * 100).toStringAsFixed(1);
+            final studentDocs = studentSnap.data!.docs;
 
-          return {
-            'studentId': studentId,
-            'present': present,
-            'total': total,
-            'percent': percent,
-          };
-        }).toList();
+            Map<String, String> studentNameMap = {};
+            for (var doc in studentDocs) {
+              final data = doc.data() as Map<String, dynamic>;
+              studentNameMap[doc.id] = data['name'] ?? "Unknown";
+            }
 
-        return Column(
-          children: [
-            /// MONTHLY BREAKDOWN
-            Wrap(
-              spacing: 10,
-              children: monthlyCount.entries.map((e) {
-                return Chip(
-                  label:
-                  Text("${e.key} → ${e.value} classes"),
-                );
-              }).toList(),
-            ),
+            Map<String, int> presentCount = {};
+            int totalSessions = sessions.length;
 
-            const SizedBox(height: 20),
+            for (var doc in sessions) {
+              final data = doc.data() as Map<String, dynamic>;
+              final map =
+              Map<String, dynamic>.from(data['studentPresence']);
 
-            /// GRAPH
-            SizedBox(
-              height: 250,
-              child: BarChart(
-                BarChartData(
-                  barGroups: rows.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final percent =
-                    double.parse(entry.value['percent'] as String);
-                    return BarChartGroupData(x: i, barRods: [
-                      BarChartRodData(toY: percent)
-                    ]);
-                  }).toList(),
-                ),
-              ),
-            ),
+              map.forEach((studentId, present) {
+                presentCount.putIfAbsent(studentId, () => 0);
+                if (present == true) {
+                  presentCount[studentId] =
+                      presentCount[studentId]! + 1;
+                }
+              });
+            }
 
-            const SizedBox(height: 20),
+            List<Map<String, dynamic>> analytics = [];
 
-            /// EXPORT PDF
-            ElevatedButton.icon(
-              icon: const Icon(Icons.picture_as_pdf),
-              label: const Text("Export PDF"),
-              onPressed: () => _exportPDF(rows),
-            ),
+            int below75 = 0;
+            int above75 = 0;
 
-            const SizedBox(height: 20),
+            presentCount.forEach((studentId, present) {
+              double percent =
+                  (present / totalSessions) * 100;
 
-            /// DATA TABLE
-            Expanded(
-              child: SingleChildScrollView(
-                child: DataTable(
-                  columns: const [
-                    DataColumn(label: Text("Student ID")),
-                    DataColumn(label: Text("Present")),
-                    DataColumn(label: Text("Total")),
-                    DataColumn(label: Text("Attendance %")),
-                  ],
-                  rows: rows.map((r) {
-                    final percent =
-                    double.parse(r['percent'] as String);
+              if (percent < 75) {
+                below75++;
+              } else {
+                above75++;
+              }
 
-                    return DataRow(
-                      onSelectChanged: (_) {
-                        _showHistoryPopup(
-                            context, sessions);
-                      },
-                      cells: [
-                        DataCell(
-                            Text(r['studentId'].toString())),
-                        DataCell(
-                            Text(r['present'].toString())),
-                        DataCell(
-                            Text(r['total'].toString())),
-                        DataCell(
-                          Text(
-                            "${r['percent']}%",
-                            style: TextStyle(
-                              color: percent < 75
-                                  ? Colors.red
-                                  : Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-          ],
+              analytics.add({
+                "studentId": studentId,
+                "studentName":
+                studentNameMap[studentId] ?? "Unknown",
+                "present": present,
+                "total": totalSessions,
+                "percent": percent.toStringAsFixed(1)
+              });
+            });
+
+            return _buildAnalyticsUI(
+                analytics,
+                totalSessions,
+                above75,
+                below75);
+          },
         );
       },
     );
   }
 
-  void _showHistoryPopup(
-      BuildContext context, List<QueryDocumentSnapshot> sessions) {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("Attendance History"),
-          content: SizedBox(
-            width: 400,
-            height: 300,
-            child: ListView(
-              children: sessions.map((s) {
-                final d =
-                (s['date'] as Timestamp).toDate();
-                return ListTile(
-                  title: Text(
-                      "${d.year}-${d.month}-${d.day}"),
-                );
-              }).toList(),
+  /// FULL UI SECTION
+  Widget _buildAnalyticsUI(
+      List<Map<String, dynamic>> analytics,
+      int totalSessions,
+      int above75,
+      int below75) {
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+
+          /// SUMMARY CARD
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text("Total Sessions: $totalSessions"),
+                  Text("Above 75%: $above75"),
+                  Text("Below 75%: $below75",
+                      style: const TextStyle(color: Colors.red)),
+                ],
+              ),
             ),
           ),
-        );
-      },
+
+          const SizedBox(height: 20),
+
+          /// PIE CHART
+          SizedBox(
+            height: 250,
+            child: PieChart(
+              PieChartData(
+                sections: [
+                  PieChartSectionData(
+                    value: above75.toDouble(),
+                    title: "Above 75%",
+                    color: Colors.green,
+                  ),
+                  PieChartSectionData(
+                    value: below75.toDouble(),
+                    title: "Below 75%",
+                    color: Colors.red,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          /// BAR CHART
+          SizedBox(
+            height: 300,
+            child: BarChart(
+              BarChartData(
+                barGroups: analytics
+                    .asMap()
+                    .entries
+                    .map((e) {
+                  final index = e.key;
+                  final percent =
+                  double.parse(e.value['percent']);
+
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: percent,
+                        color: percent < 75
+                            ? Colors.red
+                            : Colors.green,
+                      )
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          /// TABLE
+          DataTable(
+            columns: const [
+              DataColumn(label: Text("Student")),
+              DataColumn(label: Text("Present")),
+              DataColumn(label: Text("Total")),
+              DataColumn(label: Text("%")),
+            ],
+            rows: analytics.map((row) {
+              final percent =
+              double.parse(row['percent']);
+
+              return DataRow(
+                color: percent < 75
+                    ? MaterialStateProperty.all(
+                    Colors.red.shade100)
+                    : null,
+                cells: [
+                  DataCell(Text(row['studentName'])),
+                  DataCell(Text(row['present'].toString())),
+                  DataCell(Text(row['total'].toString())),
+                  DataCell(Text(row['percent'])),
+                ],
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 20),
+
+          ElevatedButton(
+            onPressed: () => _exportPDF(analytics),
+            child: const Text("Export PDF"),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _exportPDF(
       List<Map<String, dynamic>> rows) async {
+
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -291,22 +311,17 @@ class _AttendanceAnalyticsPageState
         build: (context) {
           return pw.Table.fromTextArray(
             headers: [
-              "StudentID",
+              "Student Name",
               "Present",
               "Total",
               "Percentage"
             ],
             data: rows.map((r) {
-              final studentId = r['studentId']?.toString() ?? '';
-              final present = r['present']?.toString() ?? '0';
-              final total = r['total']?.toString() ?? '0';
-              final percent = r['percent']?.toString() ?? '0';
-
               return [
-                studentId,
-                present,
-                total,
-                percent
+                r['studentName'],
+                r['present'].toString(),
+                r['total'].toString(),
+                r['percent'],
               ];
             }).toList(),
           );
@@ -317,4 +332,5 @@ class _AttendanceAnalyticsPageState
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
     );
-  } }
+  }
+}

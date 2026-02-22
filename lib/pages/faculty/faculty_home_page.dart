@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'manage_students_page.dart';
 import 'mark_attendance_page.dart';
+import 'faculty_daily_diary_page.dart';
 
 class FacultyHomePage extends StatefulWidget {
   const FacultyHomePage({super.key});
@@ -18,6 +19,7 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
     ManageStudentsPage(),
     MarkAttendancePage(),
     AttendanceAnalyticsPage(),
+    FacultyDailyDiaryPage(),
   ];
 
   @override
@@ -45,8 +47,9 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                 icon: const Icon(Icons.logout_outlined),
                 onPressed: () async {
                   await AuthService.instance.signOut();
-                  if (context.mounted)
+                  if (context.mounted) {
                     Navigator.pushReplacementNamed(context, '/');
+                  }
                 },
                 tooltip: 'Logout',
               ),
@@ -131,6 +134,13 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                       label: 'Attendance Analytics',
                       selected: _selectedIndex == 2,
                       onTap: () => setState(() => _selectedIndex = 2),
+                    ),
+
+                    _NavTile(
+                      icon: Icons.book,
+                      label: 'Daily Diary',
+                      selected: _selectedIndex == 3,
+                      onTap: () => setState(() => _selectedIndex = 3),
                     ),
 
                     const Spacer(),

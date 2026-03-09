@@ -175,7 +175,10 @@ class _MarkAttendancePageState extends State<MarkAttendancePage> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final students = snapshot.data!;
+        final students = snapshot.data!..sort(
+              (a, b) => a.rollNo.compareTo(b.rollNo),
+        );
+
         if (students.isEmpty) {
           return const Center(child: Text("No students found"));
         }

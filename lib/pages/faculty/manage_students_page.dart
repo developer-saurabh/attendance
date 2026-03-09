@@ -315,29 +315,30 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
                 children: [
                   DropdownButton<int>(
                     value: _filterYear,
-                    items:
-                        List.generate(5, (i) => i + 1)
-                            .map(
-                              (y) => DropdownMenuItem(
-                                value: y,
-                                child: Text('Year $y'),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: (v) => setState(() => _filterYear = v ?? 1),
+                    items: List.generate(4, (i) => i + 1)
+                        .map(
+                          (y) => DropdownMenuItem(
+                        value: y,
+                        child: Text('Year $y'),
+                      ),
+                    )
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _filterYear = v ?? 1;
+                        _filterSem = getSemesters(_filterYear).first;
+                      });
+                    },
                   ),
                   const SizedBox(width: 12),
                   DropdownButton<int>(
                     value: _filterSem,
-                    items:
-                        List.generate(8, (i) => i + 1)
-                            .map(
-                              (s) => DropdownMenuItem(
-                                value: s,
-                                child: Text('Sem $s'),
-                              ),
-                            )
-                            .toList(),
+                    items: getSemesters(_filterYear)
+                        .map((s) => DropdownMenuItem(
+                      value: s,
+                      child: Text('Sem $s'),
+                    ))
+                        .toList(),
                     onChanged: (v) => setState(() => _filterSem = v ?? 1),
                   ),
                   const SizedBox(width: 12),
@@ -360,17 +361,6 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
                           (v) =>
                               setState(() => _search = v.trim().toLowerCase()),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Row(
-                    children: [
-                      const Text('Only my students'),
-                      Switch(
-                        value: _showOnlyMyStudents,
-                        onChanged:
-                            (v) => setState(() => _showOnlyMyStudents = v),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -401,6 +391,7 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
                     if (!snapshot.hasData)
                       return const Center(child: CircularProgressIndicator());
                     var students = snapshot.data!;
+                    students.sort((a, b) => a.rollNo.compareTo(b.rollNo));
                     if (_search.isNotEmpty) {
                       students =
                           students.where((s) {
@@ -449,5 +440,20 @@ class _ManageStudentsPageState extends State<ManageStudentsPage> {
         ],
       ),
     );
+  }
+
+  List<int> getSemesters(int year) {
+    switch (year) {
+      case 1:
+        return [1, 2];
+      case 2:
+        return [3, 4];
+      case 3:
+        return [5, 6];
+      case 4:
+        return [7, 8];
+      default:
+        return [1, 2];
+    }
   }
 }

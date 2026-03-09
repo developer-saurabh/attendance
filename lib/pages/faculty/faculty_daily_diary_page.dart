@@ -15,9 +15,32 @@ class _FacultyDailyDiaryPageState
   final _titleC = TextEditingController();
   final _descC = TextEditingController();
   final _sectionC = TextEditingController(text: 'A');
+
   DateTime _selectedDate = DateTime.now();
+
   String? _selectedSubjectId;
   String? _selectedSubjectName;
+
+  int? _selectedYear;
+  int? _selectedSemester;
+
+  final _yearC = TextEditingController();
+  final _semC = TextEditingController();
+
+  List<int> getSemesters(int year) {
+    switch (year) {
+      case 1:
+        return [1, 2];
+      case 2:
+        return [3, 4];
+      case 3:
+        return [5, 6];
+      case 4:
+        return [7, 8];
+      default:
+        return [1, 2];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,15 +51,24 @@ class _FacultyDailyDiaryPageState
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+
+          /// SUBJECT DROPDOWN
           StreamBuilder<DocumentSnapshot>(
             stream: db.collection('users').doc(user.uid).snapshots(),
             builder: (context, userSnap) {
               if (!userSnap.hasData) {
-                return const CircularProgressIndicator();
+                return const Center(
+                  child: SizedBox(
+                    height: 30,
+                    width: 30,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                );
               }
 
               final userData =
               userSnap.data!.data() as Map<String, dynamic>;
+
               final assigned =
               List<String>.from(userData['assignedSubjects'] ?? []);
 
@@ -51,7 +83,14 @@ class _FacultyDailyDiaryPageState
                     .snapshots(),
                 builder: (context, subjectSnap) {
                   if (!subjectSnap.hasData) {
-                    return const CircularProgressIndicator();
+                    return const Center(
+                      child: SizedBox(
+                        height: 30,
+                        width: 30,
+                        child:
+                        CircularProgressIndicator(strokeWidth: 3),
+                      ),
+                    );
                   }
 
                   final subjects = subjectSnap.data!.docs;
@@ -68,13 +107,21 @@ class _FacultyDailyDiaryPageState
                       );
                     }).toList(),
                     onChanged: (val) {
-                      final doc = subjects
-                          .firstWhere((e) => e.id == val);
+                      final doc =
+                      subjects.firstWhere((e) => e.id == val);
+
                       final d =
                       doc.data() as Map<String, dynamic>;
+
                       setState(() {
                         _selectedSubjectId = val;
                         _selectedSubjectName = d['name'];
+
+                        _selectedYear = d['year'];
+                        _selectedSemester = d['semester'];
+
+                        _yearC.text = d['year'].toString();
+                        _semC.text = d['semester'].toString();
                       });
                     },
                   );
@@ -85,6 +132,58 @@ class _FacultyDailyDiaryPageState
 
           const SizedBox(height: 12),
 
+          /// YEAR + SEM DROPDOWN
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  value: _selectedYear,
+                  decoration:
+                  const InputDecoration(labelText: "Year"),
+                  items: [1, 2, 3, 4]
+                      .map((y) => DropdownMenuItem(
+                    value: y,
+                    child: Text("Year $y"),
+                  ))
+                      .toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedYear = v;
+                      _selectedSemester =
+                          getSemesters(v!).first;
+                    });
+                  },
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  value: _selectedSemester,
+                  decoration:
+                  const InputDecoration(labelText: "Semester"),
+                  items: _selectedYear == null
+                      ? []
+                      : getSemesters(_selectedYear!)
+                      .map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text("Sem $s"),
+                  ))
+                      .toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedSemester = v;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          /// TITLE
           TextField(
             controller: _titleC,
             decoration:
@@ -93,6 +192,7 @@ class _FacultyDailyDiaryPageState
 
           const SizedBox(height: 12),
 
+          /// DESCRIPTION
           TextField(
             controller: _descC,
             maxLines: 4,
@@ -102,6 +202,7 @@ class _FacultyDailyDiaryPageState
 
           const SizedBox(height: 12),
 
+          /// SECTION
           TextField(
             controller: _sectionC,
             decoration:
@@ -110,6 +211,7 @@ class _FacultyDailyDiaryPageState
 
           const SizedBox(height: 12),
 
+          /// SAVE BUTTON
           ElevatedButton(
             onPressed: () async {
               if (_selectedSubjectId == null) return;
@@ -119,8 +221,8 @@ class _FacultyDailyDiaryPageState
                 'facultyName': user.email,
                 'subjectId': _selectedSubjectId,
                 'subjectName': _selectedSubjectName,
-                'year': 0,
-                'semester': 0,
+                'year': _selectedYear,
+                'semester': _selectedSemester,
                 'section': _sectionC.text,
                 'date': Timestamp.fromDate(_selectedDate),
                 'title': _titleC.text,
@@ -139,6 +241,7 @@ class _FacultyDailyDiaryPageState
 
           const SizedBox(height: 20),
 
+          /// DIARY LIST
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: db
@@ -148,7 +251,14 @@ class _FacultyDailyDiaryPageState
                   .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const CircularProgressIndicator();
+                  return const Center(
+                    child: SizedBox(
+                      height: 30,
+                      width: 30,
+                      child:
+                      CircularProgressIndicator(strokeWidth: 3),
+                    ),
+                  );
                 }
 
                 final docs = snapshot.data!.docs;
@@ -162,6 +272,7 @@ class _FacultyDailyDiaryPageState
                   itemBuilder: (context, index) {
                     final d =
                     docs[index].data() as Map<String, dynamic>;
+
                     final date =
                     (d['date'] as Timestamp).toDate();
 
@@ -169,7 +280,7 @@ class _FacultyDailyDiaryPageState
                       child: ListTile(
                         title: Text(d['title']),
                         subtitle: Text(
-                            "${d['subjectName']} | ${date.toLocal()}"),
+                            "${d['subjectName']} | Y${d['year']} S${d['semester']} | ${date.toLocal()}"),
                       ),
                     );
                   },

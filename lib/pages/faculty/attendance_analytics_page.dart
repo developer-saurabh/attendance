@@ -13,10 +13,11 @@ class AttendanceAnalyticsPage extends StatefulWidget {
       _AttendanceAnalyticsPageState();
 }
 
-class _AttendanceAnalyticsPageState
-    extends State<AttendanceAnalyticsPage> {
-
+class _AttendanceAnalyticsPageState extends State<AttendanceAnalyticsPage> {
   String? _selectedSubjectId;
+
+  String _filterType = "ALL"; // ALL / ABOVE_75 / BELOW_40
+  String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
@@ -27,33 +28,31 @@ class _AttendanceAnalyticsPageState
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-
           /// SUBJECT DROPDOWN
           StreamBuilder<DocumentSnapshot>(
             stream: db.collection('users').doc(user.uid).snapshots(),
             builder: (context, userSnap) {
-
               if (!userSnap.hasData) {
                 return const CircularProgressIndicator();
               }
 
-              final userData =
-              userSnap.data!.data() as Map<String, dynamic>;
+              final userData = userSnap.data!.data() as Map<String, dynamic>;
 
-              final assigned =
-              List<String>.from(userData['assignedSubjects'] ?? []);
+              final assigned = List<String>.from(
+                userData['assignedSubjects'] ?? [],
+              );
 
               if (assigned.isEmpty) {
                 return const Text("No subjects assigned");
               }
 
               return StreamBuilder<QuerySnapshot>(
-                stream: db
-                    .collection('subjects')
-                    .where(FieldPath.documentId, whereIn: assigned)
-                    .snapshots(),
+                stream:
+                    db
+                        .collection('subjects')
+                        .where(FieldPath.documentId, whereIn: assigned)
+                        .snapshots(),
                 builder: (context, subjectSnap) {
-
                   if (!subjectSnap.hasData) {
                     return const CircularProgressIndicator();
                   }
@@ -63,15 +62,16 @@ class _AttendanceAnalyticsPageState
                   return DropdownButtonFormField<String>(
                     value: _selectedSubjectId,
                     decoration: const InputDecoration(
-                        labelText: "Select Subject"),
-                    items: subjects.map((doc) {
-                      final d =
-                      doc.data() as Map<String, dynamic>;
-                      return DropdownMenuItem(
-                        value: doc.id,
-                        child: Text(d['name']),
-                      );
-                    }).toList(),
+                      labelText: "Select Subject",
+                    ),
+                    items:
+                        subjects.map((doc) {
+                          final d = doc.data() as Map<String, dynamic>;
+                          return DropdownMenuItem(
+                            value: doc.id,
+                            child: Text(d['name']),
+                          );
+                        }).toList(),
                     onChanged: (val) {
                       setState(() => _selectedSubjectId = val);
                     },
@@ -95,13 +95,13 @@ class _AttendanceAnalyticsPageState
     final user = FirebaseAuth.instance.currentUser!;
 
     return StreamBuilder<QuerySnapshot>(
-      stream: db
-          .collection('attendance_sessions')
-          .where('facultyId', isEqualTo: user.uid)
-          .where('subjectId', isEqualTo: subjectId)
-          .snapshots(),
+      stream:
+          db
+              .collection('attendance_sessions')
+              .where('facultyId', isEqualTo: user.uid)
+              .where('subjectId', isEqualTo: subjectId)
+              .snapshots(),
       builder: (context, attendanceSnap) {
-
         if (!attendanceSnap.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -115,17 +115,36 @@ class _AttendanceAnalyticsPageState
         return StreamBuilder<QuerySnapshot>(
           stream: db.collection('students').snapshots(),
           builder: (context, studentSnap) {
-
             if (!studentSnap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
             final studentDocs = studentSnap.data!.docs;
 
-            Map<String, String> studentNameMap = {};
-            for (var doc in studentDocs) {
+            // Map<String, String> studentNameMap = {};
+            // for (var doc in studentDocs) {
+            //   final data = doc.data() as Map<String, dynamic>;
+            //   studentNameMap[doc.id] = data['name'] ?? "Unknown";
+            // }
+
+            /// STEP 1: Collect ONLY students from selected subject sessions
+            Set<String> subjectStudentIds = {};
+
+            for (var doc in sessions) {
               final data = doc.data() as Map<String, dynamic>;
-              studentNameMap[doc.id] = data['name'] ?? "Unknown";
+              final map = Map<String, dynamic>.from(data['studentPresence']);
+
+              subjectStudentIds.addAll(map.keys);
+            }
+
+            /// STEP 2: Build student name map ONLY for those students
+            Map<String, String> studentNameMap = {};
+
+            for (var doc in studentDocs) {
+              if (subjectStudentIds.contains(doc.id)) {
+                final data = doc.data() as Map<String, dynamic>;
+                studentNameMap[doc.id] = data['name'] ?? "Unknown";
+              }
             }
 
             Map<String, int> presentCount = {};
@@ -133,75 +152,117 @@ class _AttendanceAnalyticsPageState
 
             for (var doc in sessions) {
               final data = doc.data() as Map<String, dynamic>;
-              final map =
-              Map<String, dynamic>.from(data['studentPresence']);
+              final map = Map<String, dynamic>.from(data['studentPresence']);
 
               map.forEach((studentId, present) {
                 presentCount.putIfAbsent(studentId, () => 0);
                 if (present == true) {
-                  presentCount[studentId] =
-                      presentCount[studentId]! + 1;
+                  presentCount[studentId] = presentCount[studentId]! + 1;
                 }
               });
             }
 
             List<Map<String, dynamic>> analytics = [];
 
-            int below75 = 0;
-            int above75 = 0;
-
             presentCount.forEach((studentId, present) {
-              double percent =
-                  (present / totalSessions) * 100;
-
-              if (percent < 75) {
-                below75++;
-              } else {
-                above75++;
-              }
+              double percent = (present / totalSessions) * 100;
 
               analytics.add({
                 "studentId": studentId,
-                "studentName":
-                studentNameMap[studentId] ?? "Unknown",
+                "studentName": studentNameMap[studentId] ?? "Unknown",
                 "present": present,
                 "total": totalSessions,
-                "percent": percent.toStringAsFixed(1)
+                "percent": percent.toStringAsFixed(1),
               });
             });
 
-            return _buildAnalyticsUI(
-                analytics,
-                totalSessions,
-                above75,
-                below75);
+            return _buildAnalyticsUI(analytics, totalSessions);
           },
         );
       },
     );
   }
 
-  /// FULL UI SECTION
   Widget _buildAnalyticsUI(
-      List<Map<String, dynamic>> analytics,
-      int totalSessions,
-      int above75,
-      int below75) {
+    List<Map<String, dynamic>> analytics,
+    int totalSessions,
+  ) {
+    /// FILTER LOGIC
+    List<Map<String, dynamic>> filtered =
+        analytics.where((row) {
+          final percent = double.parse(row['percent']);
+          final name = row['studentName'].toLowerCase();
+
+          if (_searchQuery.isNotEmpty && !name.contains(_searchQuery)) {
+            return false;
+          }
+
+          if (_filterType == "ABOVE_75") {
+            return percent >= 75;
+          } else if (_filterType == "BELOW_40") {
+            return percent < 40;
+          }
+
+          return true;
+        }).toList();
+
+    int above75Count =
+        analytics.where((e) => double.parse(e['percent']) >= 75).length;
+
+    int below40Count =
+        analytics.where((e) => double.parse(e['percent']) < 40).length;
 
     return SingleChildScrollView(
       child: Column(
         children: [
+          /// FILTER + SEARCH
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ChoiceChip(
+                label: const Text("All"),
+                selected: _filterType == "ALL",
+                onSelected: (_) => setState(() => _filterType = "ALL"),
+              ),
+              ChoiceChip(
+                label: const Text("Above 75%"),
+                selected: _filterType == "ABOVE_75",
+                onSelected: (_) => setState(() => _filterType = "ABOVE_75"),
+              ),
+              ChoiceChip(
+                label: const Text("Below 40%"),
+                selected: _filterType == "BELOW_40",
+                onSelected: (_) => setState(() => _filterType = "BELOW_40"),
+              ),
+            ],
+          ),
 
-          /// SUMMARY CARD
+          const SizedBox(height: 10),
+
+          TextField(
+            decoration: const InputDecoration(
+              labelText: "Search Student",
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: (val) {
+              setState(() => _searchQuery = val.toLowerCase());
+            },
+          ),
+
+          const SizedBox(height: 20),
+
+          /// SUMMARY
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
                   Text("Total Sessions: $totalSessions"),
-                  Text("Above 75%: $above75"),
-                  Text("Below 75%: $below75",
-                      style: const TextStyle(color: Colors.red)),
+                  Text("Above 75%: $above75Count"),
+                  Text(
+                    "Below 40%: $below40Count",
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ],
               ),
             ),
@@ -216,13 +277,13 @@ class _AttendanceAnalyticsPageState
               PieChartData(
                 sections: [
                   PieChartSectionData(
-                    value: above75.toDouble(),
+                    value: above75Count.toDouble(),
                     title: "Above 75%",
                     color: Colors.green,
                   ),
                   PieChartSectionData(
-                    value: below75.toDouble(),
-                    title: "Below 75%",
+                    value: below40Count.toDouble(),
+                    title: "Below 40%",
                     color: Colors.red,
                   ),
                 ],
@@ -237,26 +298,21 @@ class _AttendanceAnalyticsPageState
             height: 300,
             child: BarChart(
               BarChartData(
-                barGroups: analytics
-                    .asMap()
-                    .entries
-                    .map((e) {
-                  final index = e.key;
-                  final percent =
-                  double.parse(e.value['percent']);
+                barGroups:
+                    filtered.asMap().entries.map((e) {
+                      final index = e.key;
+                      final percent = double.parse(e.value['percent']);
 
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(
-                        toY: percent,
-                        color: percent < 75
-                            ? Colors.red
-                            : Colors.green,
-                      )
-                    ],
-                  );
-                }).toList(),
+                      return BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: percent,
+                            color: percent < 75 ? Colors.red : Colors.green,
+                          ),
+                        ],
+                      );
+                    }).toList(),
               ),
             ),
           ),
@@ -271,66 +327,145 @@ class _AttendanceAnalyticsPageState
               DataColumn(label: Text("Total")),
               DataColumn(label: Text("%")),
             ],
-            rows: analytics.map((row) {
-              final percent =
-              double.parse(row['percent']);
+            rows:
+                filtered.map((row) {
+                  final percent = double.parse(row['percent']);
 
-              return DataRow(
-                color: percent < 75
-                    ? MaterialStateProperty.all(
-                    Colors.red.shade100)
-                    : null,
-                cells: [
-                  DataCell(Text(row['studentName'])),
-                  DataCell(Text(row['present'].toString())),
-                  DataCell(Text(row['total'].toString())),
-                  DataCell(Text(row['percent'])),
-                ],
-              );
-            }).toList(),
+                  return DataRow(
+                    color:
+                        percent < 40
+                            ? MaterialStateProperty.all(Colors.red.shade100)
+                            : null,
+                    cells: [
+                      DataCell(
+                        InkWell(
+                          onTap: () => _showStudentFullReport(row['studentId']),
+                          child: Text(
+                            row['studentName'],
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                      DataCell(Text(row['present'].toString())),
+                      DataCell(Text(row['total'].toString())),
+                      DataCell(Text(row['percent'])),
+                    ],
+                  );
+                }).toList(),
           ),
 
           const SizedBox(height: 20),
 
-          ElevatedButton(
-            onPressed: () => _exportPDF(analytics),
-            child: const Text("Export PDF"),
+          /// PDF EXPORT
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: () => _exportPDF(analytics),
+                child: const Text("Full PDF"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final above =
+                      analytics
+                          .where((e) => double.parse(e['percent']) >= 75)
+                          .toList();
+                  _exportPDF(above);
+                },
+                child: const Text("Above 75%"),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final below =
+                      analytics
+                          .where((e) => double.parse(e['percent']) < 40)
+                          .toList();
+                  _exportPDF(below);
+                },
+                child: const Text("Below 40%"),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Future<void> _exportPDF(
-      List<Map<String, dynamic>> rows) async {
-
+  Future<void> _exportPDF(List<Map<String, dynamic>> rows) async {
     final pdf = pw.Document();
 
     pdf.addPage(
       pw.Page(
         build: (context) {
           return pw.Table.fromTextArray(
-            headers: [
-              "Student Name",
-              "Present",
-              "Total",
-              "Percentage"
-            ],
-            data: rows.map((r) {
-              return [
-                r['studentName'],
-                r['present'].toString(),
-                r['total'].toString(),
-                r['percent'],
-              ];
-            }).toList(),
+            headers: ["Student Name", "Present", "Total", "Percentage"],
+            data:
+                rows.map((r) {
+                  return [
+                    r['studentName'],
+                    r['present'].toString(),
+                    r['total'].toString(),
+                    r['percent'],
+                  ];
+                }).toList(),
           );
         },
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (format) async => pdf.save(),
+    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+  }
+
+  Future<void> _showStudentFullReport(String studentId) async {
+    final db = FirebaseFirestore.instance;
+
+    final sessions = await db.collection('attendance_sessions').get();
+
+    Map<String, int> subjectPresent = {};
+    Map<String, int> subjectTotal = {};
+
+    for (var doc in sessions.docs) {
+      final data = doc.data();
+      final subject = data['subjectId'];
+
+      final presence = Map<String, dynamic>.from(data['studentPresence']);
+
+      if (!presence.containsKey(studentId)) continue;
+
+      subjectTotal[subject] = (subjectTotal[subject] ?? 0) + 1;
+
+      if (presence[studentId] == true) {
+        subjectPresent[subject] = (subjectPresent[subject] ?? 0) + 1;
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("Student Full Report"),
+          content: SizedBox(
+            width: 300,
+            child: ListView(
+              shrinkWrap: true,
+              children:
+                  subjectTotal.keys.map((sub) {
+                    final p = subjectPresent[sub] ?? 0;
+                    final t = subjectTotal[sub]!;
+                    final percent = ((p / t) * 100).toStringAsFixed(1);
+
+                    return ListTile(
+                      title: Text("Subject: $sub"),
+                      subtitle: Text("$p / $t  ($percent%)"),
+                    );
+                  }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

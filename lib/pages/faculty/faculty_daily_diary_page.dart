@@ -6,15 +6,16 @@ class FacultyDailyDiaryPage extends StatefulWidget {
   const FacultyDailyDiaryPage({super.key});
 
   @override
-  State<FacultyDailyDiaryPage> createState() =>
-      _FacultyDailyDiaryPageState();
+  State<FacultyDailyDiaryPage> createState() => _FacultyDailyDiaryPageState();
 }
 
-class _FacultyDailyDiaryPageState
-    extends State<FacultyDailyDiaryPage> {
+class _FacultyDailyDiaryPageState extends State<FacultyDailyDiaryPage> {
   final _titleC = TextEditingController();
   final _descC = TextEditingController();
   final _sectionC = TextEditingController(text: 'A');
+
+  /// ✅ NEW CONTROLLER
+  final _percentageC = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
 
@@ -51,7 +52,6 @@ class _FacultyDailyDiaryPageState
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-
           /// SUBJECT DROPDOWN
           StreamBuilder<DocumentSnapshot>(
             stream: db.collection('users').doc(user.uid).snapshots(),
@@ -66,29 +66,29 @@ class _FacultyDailyDiaryPageState
                 );
               }
 
-              final userData =
-              userSnap.data!.data() as Map<String, dynamic>;
+              final userData = userSnap.data!.data() as Map<String, dynamic>;
 
-              final assigned =
-              List<String>.from(userData['assignedSubjects'] ?? []);
+              final assigned = List<String>.from(
+                userData['assignedSubjects'] ?? [],
+              );
 
               if (assigned.isEmpty) {
                 return const Text("No subjects assigned.");
               }
 
               return StreamBuilder<QuerySnapshot>(
-                stream: db
-                    .collection('subjects')
-                    .where(FieldPath.documentId, whereIn: assigned)
-                    .snapshots(),
+                stream:
+                    db
+                        .collection('subjects')
+                        .where(FieldPath.documentId, whereIn: assigned)
+                        .snapshots(),
                 builder: (context, subjectSnap) {
                   if (!subjectSnap.hasData) {
                     return const Center(
                       child: SizedBox(
                         height: 30,
                         width: 30,
-                        child:
-                        CircularProgressIndicator(strokeWidth: 3),
+                        child: CircularProgressIndicator(strokeWidth: 3),
                       ),
                     );
                   }
@@ -97,21 +97,20 @@ class _FacultyDailyDiaryPageState
 
                   return DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
-                        labelText: "Select Subject"),
-                    items: subjects.map((doc) {
-                      final d =
-                      doc.data() as Map<String, dynamic>;
-                      return DropdownMenuItem(
-                        value: doc.id,
-                        child: Text(d['name']),
-                      );
-                    }).toList(),
+                      labelText: "Select Subject",
+                    ),
+                    items:
+                        subjects.map((doc) {
+                          final d = doc.data() as Map<String, dynamic>;
+                          return DropdownMenuItem(
+                            value: doc.id,
+                            child: Text(d['name']),
+                          );
+                        }).toList(),
                     onChanged: (val) {
-                      final doc =
-                      subjects.firstWhere((e) => e.id == val);
+                      final doc = subjects.firstWhere((e) => e.id == val);
 
-                      final d =
-                      doc.data() as Map<String, dynamic>;
+                      final d = doc.data() as Map<String, dynamic>;
 
                       setState(() {
                         _selectedSubjectId = val;
@@ -138,19 +137,20 @@ class _FacultyDailyDiaryPageState
               Expanded(
                 child: DropdownButtonFormField<int>(
                   value: _selectedYear,
-                  decoration:
-                  const InputDecoration(labelText: "Year"),
-                  items: [1, 2, 3, 4]
-                      .map((y) => DropdownMenuItem(
-                    value: y,
-                    child: Text("Year $y"),
-                  ))
-                      .toList(),
+                  decoration: const InputDecoration(labelText: "Year"),
+                  items:
+                      [1, 2, 3, 4]
+                          .map(
+                            (y) => DropdownMenuItem(
+                              value: y,
+                              child: Text("Year $y"),
+                            ),
+                          )
+                          .toList(),
                   onChanged: (v) {
                     setState(() {
                       _selectedYear = v;
-                      _selectedSemester =
-                          getSemesters(v!).first;
+                      _selectedSemester = getSemesters(v!).first;
                     });
                   },
                 ),
@@ -161,16 +161,18 @@ class _FacultyDailyDiaryPageState
               Expanded(
                 child: DropdownButtonFormField<int>(
                   value: _selectedSemester,
-                  decoration:
-                  const InputDecoration(labelText: "Semester"),
-                  items: _selectedYear == null
-                      ? []
-                      : getSemesters(_selectedYear!)
-                      .map((s) => DropdownMenuItem(
-                    value: s,
-                    child: Text("Sem $s"),
-                  ))
-                      .toList(),
+                  decoration: const InputDecoration(labelText: "Semester"),
+                  items:
+                      _selectedYear == null
+                          ? []
+                          : getSemesters(_selectedYear!)
+                              .map(
+                                (s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text("Sem $s"),
+                                ),
+                              )
+                              .toList(),
                   onChanged: (v) {
                     setState(() {
                       _selectedSemester = v;
@@ -186,8 +188,7 @@ class _FacultyDailyDiaryPageState
           /// TITLE
           TextField(
             controller: _titleC,
-            decoration:
-            const InputDecoration(labelText: "Title"),
+            decoration: const InputDecoration(labelText: "Title"),
           ),
 
           const SizedBox(height: 12),
@@ -196,8 +197,7 @@ class _FacultyDailyDiaryPageState
           TextField(
             controller: _descC,
             maxLines: 4,
-            decoration:
-            const InputDecoration(labelText: "Description"),
+            decoration: const InputDecoration(labelText: "Description"),
           ),
 
           const SizedBox(height: 12),
@@ -205,8 +205,18 @@ class _FacultyDailyDiaryPageState
           /// SECTION
           TextField(
             controller: _sectionC,
-            decoration:
-            const InputDecoration(labelText: "Section"),
+            decoration: const InputDecoration(labelText: "Section"),
+          ),
+
+          const SizedBox(height: 12),
+
+          /// ✅ NEW FIELD: PERCENTAGE COVERED
+          TextField(
+            controller: _percentageC,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: "Percentage Covered (0-100)",
+            ),
           ),
 
           const SizedBox(height: 12),
@@ -227,14 +237,22 @@ class _FacultyDailyDiaryPageState
                 'date': Timestamp.fromDate(_selectedDate),
                 'title': _titleC.text,
                 'description': _descC.text,
+
+                /// ✅ NEW FIELD SAVED
+                'percentageCovered': double.tryParse(_percentageC.text) ?? 0,
+
                 'createdAt': Timestamp.now(),
               });
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Diary Saved")));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("Diary Saved")));
 
               _titleC.clear();
               _descC.clear();
+              _percentageC.clear();
+
+              /// ✅ CLEAR
             },
             child: const Text("Save Diary"),
           ),
@@ -244,19 +262,19 @@ class _FacultyDailyDiaryPageState
           /// DIARY LIST
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: db
-                  .collection('daily_diary')
-                  .where('facultyId', isEqualTo: user.uid)
-                  .orderBy('date', descending: true)
-                  .snapshots(),
+              stream:
+                  db
+                      .collection('daily_diary')
+                      .where('facultyId', isEqualTo: user.uid)
+                      .orderBy('date', descending: true)
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(
                     child: SizedBox(
                       height: 30,
                       width: 30,
-                      child:
-                      CircularProgressIndicator(strokeWidth: 3),
+                      child: CircularProgressIndicator(strokeWidth: 3),
                     ),
                   );
                 }
@@ -270,17 +288,17 @@ class _FacultyDailyDiaryPageState
                 return ListView.builder(
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final d =
-                    docs[index].data() as Map<String, dynamic>;
+                    final d = docs[index].data() as Map<String, dynamic>;
 
-                    final date =
-                    (d['date'] as Timestamp).toDate();
+                    final date = (d['date'] as Timestamp).toDate();
 
                     return Card(
                       child: ListTile(
                         title: Text(d['title']),
                         subtitle: Text(
-                            "${d['subjectName']} | Y${d['year']} S${d['semester']} | ${date.toLocal()}"),
+                          "${d['subjectName']} | Y${d['year']} S${d['semester']} | ${date.toLocal()} \n"
+                          "Covered: ${d['percentageCovered'] ?? 0}%",
+                        ),
                       ),
                     );
                   },

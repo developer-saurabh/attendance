@@ -1,4 +1,5 @@
 import 'package:attendance/pages/faculty/attendance_analytics_page.dart';
+import 'package:attendance/pages/faculty/daily_diary_analytics_page.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'faculty_event_proposal_page.dart';
@@ -25,7 +26,8 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
     FacultyDailyDiaryPage(),
     FacultyInventoryPage(),
     FacultyPurchaseRequestPage(),
-    FacultyEventProposalPage (),
+    FacultyEventProposalPage(),
+    DailyDiaryAnalyticsPage(),
   ];
 
   @override
@@ -168,6 +170,13 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
                       label: 'Event Request',
                       selected: _selectedIndex == 6,
                       onTap: () => setState(() => _selectedIndex = 6),
+                    ),
+
+                    _NavTile(
+                      icon: Icons.analytics_outlined,
+                      label: 'Diary Analytics',
+                      selected: _selectedIndex == 7,
+                      onTap: () => setState(() => _selectedIndex = 7),
                     ),
 
                     const Spacer(),

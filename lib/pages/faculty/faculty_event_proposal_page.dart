@@ -17,10 +17,10 @@ class _FacultyEventProposalPageState
   final _venueC = TextEditingController();
   final _descC = TextEditingController();
   final _budgetC = TextEditingController();
+  final _deptC = TextEditingController();
 
-  String _department = "Computer";
-  int _semester = 1;
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay? _selectedTime;
 
   final db = FirebaseFirestore.instance;
 
@@ -40,28 +40,64 @@ class _FacultyEventProposalPageState
 
           const SizedBox(height: 12),
 
-          DropdownButtonFormField<String>(
-            value: _department,
+          // ✅ Department TEXT FIELD (no dropdown)
+          TextField(
+            controller: _deptC,
             decoration: const InputDecoration(labelText: "Department"),
-            items: const [
-              DropdownMenuItem(value: "Computer", child: Text("Computer")),
-              DropdownMenuItem(value: "Mechanical", child: Text("Mechanical")),
-              DropdownMenuItem(value: "Civil", child: Text("Civil")),
-            ],
-            onChanged: (v) => setState(() => _department = v!),
           ),
 
           const SizedBox(height: 12),
 
-          DropdownButtonFormField<int>(
-            value: _semester,
-            decoration: const InputDecoration(labelText: "Semester"),
-            items: List.generate(
-                8,
-                    (index) => DropdownMenuItem(
-                    value: index + 1,
-                    child: Text("Sem ${index + 1}"))),
-            onChanged: (v) => setState(() => _semester = v!),
+          // ✅ DATE PICKER
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "Date: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                  }
+                },
+                child: const Text("Pick Date"),
+              )
+            ],
+          ),
+
+          // ✅ TIME PICKER
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _selectedTime == null
+                      ? "Select Time"
+                      : "Time: ${_selectedTime!.format(context)}",
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.now(),
+                  );
+
+                  if (picked != null) {
+                    setState(() => _selectedTime = picked);
+                  }
+                },
+                child: const Text("Pick Time"),
+              )
+            ],
           ),
 
           const SizedBox(height: 12),
@@ -92,20 +128,25 @@ class _FacultyEventProposalPageState
           ElevatedButton(
             onPressed: () async {
 
-              if (_titleC.text.isEmpty) return;
+              if (_titleC.text.isEmpty || _selectedTime == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Fill all required fields")),
+                );
+                return;
+              }
 
               await db.collection('events').add({
                 'title': _titleC.text,
-                'department': _department,
-                'semester': _semester,
+                'department': _deptC.text,
                 'proposedBy': user.uid,
                 'proposedByName': user.email,
                 'eventDate': Timestamp.fromDate(_selectedDate),
+                'eventTime': _selectedTime!.format(context),
                 'venue': _venueC.text,
                 'description': _descC.text,
                 'estimatedBudget': int.tryParse(_budgetC.text) ?? 0,
                 'status': 'pending',
-                'remarks': '',
+                'isDone': false,
                 'createdAt': Timestamp.now(),
               });
 
@@ -113,9 +154,11 @@ class _FacultyEventProposalPageState
               _venueC.clear();
               _descC.clear();
               _budgetC.clear();
+              _deptC.clear();
 
               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Event Proposal Submitted")));
+                const SnackBar(content: Text("✅ Event Proposal Submitted")),
+              );
             },
             child: const Text("Submit Proposal"),
           ),
@@ -130,13 +173,8 @@ class _FacultyEventProposalPageState
                   .snapshots(),
               builder: (context, snapshot) {
 
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No Events"));
                 }
 
                 final docs = snapshot.data!.docs;
@@ -150,7 +188,7 @@ class _FacultyEventProposalPageState
                       child: ListTile(
                         title: Text(d['title']),
                         subtitle: Text(
-                            "Dept: ${d['department']} | Status: ${d['status']}"),
+                            "${d['department']} | ${d['eventTime']} | ${d['status']}"),
                       ),
                     );
                   },

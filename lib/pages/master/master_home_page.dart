@@ -8,7 +8,7 @@ import 'master_inventory_page.dart';
 import 'master_purchase_requests_page.dart';
 import 'master_view_attendance_page.dart';
 import 'manage_subjects_page.dart';
-
+import 'master_message_page.dart';
 class MasterHomePage extends StatefulWidget {
   const MasterHomePage({super.key});
 
@@ -65,7 +65,7 @@ class _MasterHomePageState extends State<MasterHomePage> {
           /// MAIN CONTENT
           Expanded(
             child: DefaultTabController(
-              length: 7,
+              length: 8,
               child: Column(
                 children: [
 
@@ -78,6 +78,7 @@ class _MasterHomePageState extends State<MasterHomePage> {
                       Tab(text: 'Inventory'),
                       Tab(text: 'Inventory Approval'),
                       Tab(text: 'Events'),
+                      Tab(text: 'Message'),
                     ],
                   ),
 
@@ -242,6 +243,10 @@ class _MasterHomePageState extends State<MasterHomePage> {
 
                         /// TAB 7
                         const MasterEventManagementPage(),
+
+                        /// TAB 8
+                        /// 
+                        const MasterMessagePage(),
                       ],
                     ),
                   ),

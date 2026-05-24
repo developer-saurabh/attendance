@@ -8,6 +8,7 @@ import 'faculty_purchase_request_page.dart';
 import 'manage_students_page.dart';
 import 'mark_attendance_page.dart';
 import 'faculty_daily_diary_page.dart';
+import 'faculty_messages_page.dart';
 
 class FacultyHomePage extends StatefulWidget {
   const FacultyHomePage({super.key});
@@ -28,6 +29,7 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
     FacultyPurchaseRequestPage(),
     FacultyEventProposalPage(),
     DailyDiaryAnalyticsPage(),
+    FacultyMessagesPage(),
   ];
 
   @override
@@ -74,120 +76,137 @@ class _FacultyHomePageState extends State<FacultyHomePage> {
             child: Container(
               color: Theme.of(context).scaffoldBackgroundColor,
               child: SafeArea(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    // profile card
-                    Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 28,
-                              backgroundColor: primaryB,
-                              child: const Icon(
-                                Icons.person,
-                                color: Colors.white,
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+
+                      // profile card
+                      Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: primaryB,
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Faculty',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
+
+                              const SizedBox(width: 12),
+
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Faculty',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Manage Attendance',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
+
+                                    SizedBox(height: 4),
+
+                                    Text(
+                                      'Manage Attendance',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
 
-                    // nav items
-                    _NavTile(
-                      icon: Icons.group,
-                      label: 'Manage Students',
-                      selected: _selectedIndex == 0,
-                      onTap: () => setState(() => _selectedIndex = 0),
-                    ),
-                    _NavTile(
-                      icon: Icons.check_box,
-                      label: 'Mark Attendance',
-                      selected: _selectedIndex == 1,
-                      onTap: () => setState(() => _selectedIndex = 1),
-                    ),
+                      const SizedBox(height: 18),
 
-                    _NavTile(
-                      icon: Icons.analytics,
-                      label: 'Attendance Analytics',
-                      selected: _selectedIndex == 2,
-                      onTap: () => setState(() => _selectedIndex = 2),
-                    ),
-
-                    _NavTile(
-                      icon: Icons.book,
-                      label: 'Daily Diary',
-                      selected: _selectedIndex == 3,
-                      onTap: () => setState(() => _selectedIndex = 3),
-                    ),
-
-                    _NavTile(
-                      icon: Icons.inventory,
-                      label: 'Inventory',
-                      selected: _selectedIndex == 4,
-                      onTap: () => setState(() => _selectedIndex = 4),
-                    ),
-
-                    _NavTile(
-                      icon: Icons.request_page,
-                      label: 'Purchase Request',
-                      selected: _selectedIndex == 5,
-                      onTap: () => setState(() => _selectedIndex = 5),
-                    ),
-
-                    _NavTile(
-                      icon: Icons.event_available_sharp,
-                      label: 'Event Request',
-                      selected: _selectedIndex == 6,
-                      onTap: () => setState(() => _selectedIndex = 6),
-                    ),
-
-                    _NavTile(
-                      icon: Icons.analytics_outlined,
-                      label: 'Diary Analytics',
-                      selected: _selectedIndex == 7,
-                      onTap: () => setState(() => _selectedIndex = 7),
-                    ),
-
-                    const Spacer(),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Text(
-                        'Attendance System',
-                        style: TextStyle(color: Colors.grey[600]),
+                      // nav items
+                      _NavTile(
+                        icon: Icons.group,
+                        label: 'Manage Students',
+                        selected: _selectedIndex == 0,
+                        onTap: () => setState(() => _selectedIndex = 0),
                       ),
-                    ),
-                  ],
+
+                      _NavTile(
+                        icon: Icons.check_box,
+                        label: 'Mark Attendance',
+                        selected: _selectedIndex == 1,
+                        onTap: () => setState(() => _selectedIndex = 1),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.analytics,
+                        label: 'Attendance Analytics',
+                        selected: _selectedIndex == 2,
+                        onTap: () => setState(() => _selectedIndex = 2),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.book,
+                        label: 'Daily Diary',
+                        selected: _selectedIndex == 3,
+                        onTap: () => setState(() => _selectedIndex = 3),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.inventory,
+                        label: 'Inventory',
+                        selected: _selectedIndex == 4,
+                        onTap: () => setState(() => _selectedIndex = 4),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.request_page,
+                        label: 'Purchase Request',
+                        selected: _selectedIndex == 5,
+                        onTap: () => setState(() => _selectedIndex = 5),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.event_available_sharp,
+                        label: 'Event Request',
+                        selected: _selectedIndex == 6,
+                        onTap: () => setState(() => _selectedIndex = 6),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.analytics_outlined,
+                        label: 'Diary Analytics',
+                        selected: _selectedIndex == 7,
+                        onTap: () => setState(() => _selectedIndex = 7),
+                      ),
+
+                      _NavTile(
+                        icon: Icons.message,
+                        label: 'Messages',
+                        selected: _selectedIndex == 8,
+                        onTap: () => setState(() => _selectedIndex = 8),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Text(
+                          'Attendance System',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

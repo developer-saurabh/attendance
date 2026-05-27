@@ -1,3 +1,4 @@
+import 'package:attendance/pages/master/faculty_inventory_tracking_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
@@ -9,6 +10,7 @@ import 'master_purchase_requests_page.dart';
 import 'master_view_attendance_page.dart';
 import 'manage_subjects_page.dart';
 import 'master_message_page.dart';
+
 class MasterHomePage extends StatefulWidget {
   const MasterHomePage({super.key});
 
@@ -17,12 +19,10 @@ class MasterHomePage extends StatefulWidget {
 }
 
 class _MasterHomePageState extends State<MasterHomePage> {
-
   Map<String, dynamic>? selectedFaculty;
 
   @override
   Widget build(BuildContext context) {
-
     final db = FirebaseFirestore.instance;
 
     return Scaffold(
@@ -43,7 +43,6 @@ class _MasterHomePageState extends State<MasterHomePage> {
 
       body: Row(
         children: [
-
           /// LEFT NAVIGATION
           NavigationRail(
             destinations: const [
@@ -65,10 +64,9 @@ class _MasterHomePageState extends State<MasterHomePage> {
           /// MAIN CONTENT
           Expanded(
             child: DefaultTabController(
-              length: 8,
+              length: 9,
               child: Column(
                 children: [
-
                   const TabBar(
                     tabs: [
                       Tab(text: 'Manage Faculty'),
@@ -79,17 +77,16 @@ class _MasterHomePageState extends State<MasterHomePage> {
                       Tab(text: 'Inventory Approval'),
                       Tab(text: 'Events'),
                       Tab(text: 'Message'),
+                      Tab(text: 'Faculty Inventory'),
                     ],
                   ),
 
                   Expanded(
                     child: TabBarView(
                       children: [
-
                         /// TAB 1 → MANAGE FACULTY
                         Column(
                           children: [
-
                             /// FACULTY INFORMATION CARD
                             if (selectedFaculty != null)
                               Card(
@@ -98,26 +95,27 @@ class _MasterHomePageState extends State<MasterHomePage> {
                                   padding: const EdgeInsets.all(16),
                                   child: Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
-
                                       const Text(
                                         "Faculty Information",
                                         style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
 
                                       const SizedBox(height: 10),
 
-                                      Text(
-                                          "Name: ${selectedFaculty!['name']}"),
+                                      Text("Name: ${selectedFaculty!['name']}"),
 
                                       Text(
-                                          "Email: ${selectedFaculty!['email']}"),
+                                        "Email: ${selectedFaculty!['email']}",
+                                      ),
 
                                       Text(
-                                          "Phone: ${selectedFaculty!['phone'] ?? 'Not added'}"),
+                                        "Phone: ${selectedFaculty!['phone'] ?? 'Not added'}",
+                                      ),
 
                                       const SizedBox(height: 6),
 
@@ -128,20 +126,34 @@ class _MasterHomePageState extends State<MasterHomePage> {
                                             return const CircularProgressIndicator();
                                           }
 
-                                          final subjectDocs = snapshot.data!.docs;
-                                          final assignedIds =
-                                          List<String>.from(selectedFaculty!['assignedSubjects'] ?? []);
+                                          final subjectDocs =
+                                              snapshot.data!.docs;
+                                          final assignedIds = List<String>.from(
+                                            selectedFaculty!['assignedSubjects'] ??
+                                                [],
+                                          );
 
-                                          final subjectNames = subjectDocs
-                                              .where((doc) => assignedIds.contains(doc.id))
-                                              .map((doc) => (doc.data() as Map<String, dynamic>)['name'])
-                                              .toList();
+                                          final subjectNames =
+                                              subjectDocs
+                                                  .where(
+                                                    (doc) => assignedIds
+                                                        .contains(doc.id),
+                                                  )
+                                                  .map(
+                                                    (doc) =>
+                                                        (doc.data()
+                                                            as Map<
+                                                              String,
+                                                              dynamic
+                                                            >)['name'],
+                                                  )
+                                                  .toList();
 
                                           return Text(
                                             "Subjects: ${subjectNames.isEmpty ? "None assigned" : subjectNames.join(", ")}",
                                           );
                                         },
-                                      )
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -150,22 +162,21 @@ class _MasterHomePageState extends State<MasterHomePage> {
                             /// FACULTY LIST
                             Expanded(
                               child: StreamBuilder<QuerySnapshot>(
-                                stream: db
-                                    .collection('users')
-                                    .where('role', isEqualTo: 'faculty')
-                                    .snapshots(),
+                                stream:
+                                    db
+                                        .collection('users')
+                                        .where('role', isEqualTo: 'faculty')
+                                        .snapshots(),
                                 builder: (context, snapshot) {
-
                                   if (snapshot.hasError) {
                                     return const Center(
-                                        child: Text(
-                                            'Error loading faculty'));
+                                      child: Text('Error loading faculty'),
+                                    );
                                   }
 
                                   if (!snapshot.hasData) {
                                     return const Center(
-                                      child:
-                                      CircularProgressIndicator(),
+                                      child: CircularProgressIndicator(),
                                     );
                                   }
 
@@ -173,23 +184,21 @@ class _MasterHomePageState extends State<MasterHomePage> {
 
                                   if (docs.isEmpty) {
                                     return const Center(
-                                        child: Text('No faculty found'));
+                                      child: Text('No faculty found'),
+                                    );
                                   }
 
                                   return ListView.builder(
                                     itemCount: docs.length,
                                     itemBuilder: (context, index) {
-
                                       final data =
-                                      docs[index].data()
-                                      as Map<String, dynamic>;
+                                          docs[index].data()
+                                              as Map<String, dynamic>;
 
                                       return ListTile(
-                                        title: Text(
-                                            data['name'] ?? 'No name'),
+                                        title: Text(data['name'] ?? 'No name'),
 
-                                        subtitle: Text(
-                                            data['email'] ?? ''),
+                                        subtitle: Text(data['email'] ?? ''),
 
                                         onTap: () {
                                           setState(() {
@@ -210,14 +219,12 @@ class _MasterHomePageState extends State<MasterHomePage> {
                               padding: const EdgeInsets.all(8.0),
                               child: ElevatedButton.icon(
                                 icon: const Icon(Icons.add),
-                                label:
-                                const Text('Create Faculty'),
+                                label: const Text('Create Faculty'),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                      const CreateFacultyPage(),
+                                      builder: (_) => const CreateFacultyPage(),
                                     ),
                                   );
                                 },
@@ -245,8 +252,9 @@ class _MasterHomePageState extends State<MasterHomePage> {
                         const MasterEventManagementPage(),
 
                         /// TAB 8
-                        /// 
+                        ///
                         const MasterMessagePage(),
+                        const FacultyInventoryTrackingPage(),
                       ],
                     ),
                   ),

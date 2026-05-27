@@ -13,7 +13,7 @@ class MasterInventoryPage extends StatefulWidget {
 class _MasterInventoryPageState extends State<MasterInventoryPage>
     with TickerProviderStateMixin {
   final db = FirebaseFirestore.instance;
-DateTime? selectedBillDate;
+  DateTime? selectedBillDate;
   final _nameC = TextEditingController();
   final _qtyC = TextEditingController();
   final _minQtyC = TextEditingController();
@@ -21,6 +21,9 @@ DateTime? selectedBillDate;
   final _purchaseQtyC = TextEditingController();
   final _costC = TextEditingController();
   final _billNoC = TextEditingController();
+
+  final _vendorNameC = TextEditingController();
+  final _cityC = TextEditingController();
 
   late TabController _tabController;
 
@@ -44,6 +47,10 @@ DateTime? selectedBillDate;
     _purchaseQtyC.clear();
     _costC.clear();
     _billNoC.clear();
+
+    _vendorNameC.clear(); // NEW
+    _cityC.clear(); // NEW
+
     selectedItemId = null;
   }
 
@@ -250,166 +257,186 @@ DateTime? selectedBillDate;
 
   // ================= PURCHASE =================
   Widget _purchaseTab() {
-  return Column(
-    children: [
-      // 🔽 ITEM DROPDOWN WITH CODE
-      StreamBuilder<QuerySnapshot>(
-        stream: db.collection('inventory_items').snapshots(),
-        builder: (_, snap) {
-          if (!snap.hasData) return const SizedBox();
+    return Column(
+      children: [
+        // 🔽 ITEM DROPDOWN WITH CODE
+        StreamBuilder<QuerySnapshot>(
+          stream: db.collection('inventory_items').snapshots(),
+          builder: (_, snap) {
+            if (!snap.hasData) return const SizedBox();
 
-          return DropdownButtonFormField<String>(
-            hint: const Text("Select Item"),
-            items: snap.data!.docs.map((doc) {
-              final d = doc.data() as Map<String, dynamic>;
+            return DropdownButtonFormField<String>(
+              hint: const Text("Select Item"),
+              items:
+                  snap.data!.docs.map((doc) {
+                    final d = doc.data() as Map<String, dynamic>;
 
-              return DropdownMenuItem(
-                value: doc.id,
-                child: Text(
-                  "${d['name']} (${d['itemCode'] ?? 'No Code'})",
-                ),
-              );
-            }).toList(),
-            onChanged: (val) => selectedItemId = val,
-          );
-        },
-      ),
+                    return DropdownMenuItem(
+                      value: doc.id,
+                      child: Text(
+                        "${d['name']} (${d['itemCode'] ?? 'No Code'})",
+                      ),
+                    );
+                  }).toList(),
+              onChanged: (val) => selectedItemId = val,
+            );
+          },
+        ),
 
-      // 🔽 PURCHASE QTY
-      TextField(
-        controller: _purchaseQtyC,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(labelText: "Purchase Qty"),
-      ),
+        // 🔽 PURCHASE QTY
+        TextField(
+          controller: _purchaseQtyC,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "Purchase Qty"),
+        ),
 
-      // 🔽 COST
-      TextField(
-        controller: _costC,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(labelText: "Cost"),
-      ),
+        // 🔽 COST
+        TextField(
+          controller: _costC,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "Cost"),
+        ),
 
-      // 🔽 BILL NUMBER
-      TextField(
-        controller: _billNoC,
-        decoration: const InputDecoration(labelText: "Bill Number"),
-      ),
+        // 🔽 BILL NUMBER
+        TextField(
+          controller: _billNoC,
+          decoration: const InputDecoration(labelText: "Bill Number"),
+        ),
 
-      // 🔽 BILL DATE PICKER
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              selectedBillDate == null
-                  ? "Select Bill Date"
-                  : "Bill Date: ${selectedBillDate!.toLocal().toString().split(' ')[0]}",
+        // 🔽 VENDOR / SHOP NAME
+        TextField(
+          controller: _vendorNameC,
+          decoration: const InputDecoration(labelText: "Vendor / Shop Name"),
+        ),
+
+        // 🔽 CITY
+        TextField(
+          controller: _cityC,
+          decoration: const InputDecoration(labelText: "Purchase City"),
+        ),
+
+        // 🔽 BILL DATE PICKER
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                selectedBillDate == null
+                    ? "Select Bill Date"
+                    : "Bill Date: ${selectedBillDate!.toLocal().toString().split(' ')[0]}",
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-              );
+            TextButton(
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                );
 
-              if (picked != null) {
-                setState(() => selectedBillDate = picked);
+                if (picked != null) {
+                  setState(() => selectedBillDate = picked);
+                }
+              },
+              child: const Text("Pick Date"),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // 🔥 ADD PURCHASE BUTTON
+        ElevatedButton(
+          onPressed: () async {
+            try {
+              if (selectedItemId == null) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text("❌ Select item")));
+                return;
               }
-            },
-            child: const Text("Pick Date"),
-          ),
-        ],
-      ),
 
-      const SizedBox(height: 10),
+              final purchaseQty = int.tryParse(_purchaseQtyC.text) ?? 0;
 
-      // 🔥 ADD PURCHASE BUTTON
-      ElevatedButton(
-        onPressed: () async {
-          try {
-            if (selectedItemId == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("❌ Select item")),
-              );
-              return;
+              if (purchaseQty <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("❌ Enter valid quantity")),
+                );
+                return;
+              }
+
+              final itemRef = db
+                  .collection('inventory_items')
+                  .doc(selectedItemId);
+
+              final snap = await itemRef.get();
+              final data = snap.data();
+
+              final currentQty = (data?['quantity'] ?? 0) as int;
+              final itemCode = data?['itemCode'] ?? 'NA';
+              final itemName = data?['name'] ?? '';
+
+              final newQty = currentQty + purchaseQty;
+
+              // ✅ update stock
+              await itemRef.update({'quantity': newQty});
+
+              // ✅ add purchase record
+              await db.collection('inventory_purchases').add({
+                'itemId': selectedItemId,
+                'itemName': itemName,
+                'itemCode': itemCode, // 🔥 added
+                'quantity': purchaseQty,
+                'cost': _costC.text,
+                'billNo': _billNoC.text,
+                // NEW FIELDS
+                'vendorName': _vendorNameC.text.trim(),
+                'purchaseCity': _cityC.text.trim(),
+
+                'billDate':
+                    selectedBillDate != null
+                        ? Timestamp.fromDate(selectedBillDate!)
+                        : Timestamp.now(),
+                'createdAt': Timestamp.now(),
+              });
+
+              // ✅ success message
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("✅ Purchase Added Successfully"),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+
+              // 🔄 clear form
+              _purchaseQtyC.clear();
+              _costC.clear();
+              _billNoC.clear();
+              setState(() {
+                selectedItemId = null;
+                selectedBillDate = null;
+              });
+            } catch (e) {
+              print("Purchase Error: $e");
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("❌ Something went wrong"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             }
+          },
+          child: const Text("Add Purchase"),
+        ),
+      ],
+    );
+  }
 
-            final purchaseQty = int.tryParse(_purchaseQtyC.text) ?? 0;
-
-            if (purchaseQty <= 0) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("❌ Enter valid quantity")),
-              );
-              return;
-            }
-
-            final itemRef =
-                db.collection('inventory_items').doc(selectedItemId);
-
-            final snap = await itemRef.get();
-            final data = snap.data();
-
-            final currentQty = (data?['quantity'] ?? 0) as int;
-            final itemCode = data?['itemCode'] ?? 'NA';
-            final itemName = data?['name'] ?? '';
-
-            final newQty = currentQty + purchaseQty;
-
-            // ✅ update stock
-            await itemRef.update({'quantity': newQty});
-
-            // ✅ add purchase record
-            await db.collection('inventory_purchases').add({
-              'itemId': selectedItemId,
-              'itemName': itemName,
-              'itemCode': itemCode, // 🔥 added
-              'quantity': purchaseQty,
-              'cost': _costC.text,
-              'billNo': _billNoC.text,
-              'billDate': selectedBillDate != null
-                  ? Timestamp.fromDate(selectedBillDate!)
-                  : Timestamp.now(),
-              'createdAt': Timestamp.now(),
-            });
-
-            // ✅ success message
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("✅ Purchase Added Successfully"),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-
-            // 🔄 clear form
-            _purchaseQtyC.clear();
-            _costC.clear();
-            _billNoC.clear();
-            setState(() {
-              selectedItemId = null;
-              selectedBillDate = null;
-            });
-          } catch (e) {
-            print("Purchase Error: $e");
-
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("❌ Something went wrong"),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
-        },
-        child: const Text("Add Purchase"),
-      ),
-    ],
-  );
-}
   // ================= REQUESTS =================
   Widget _requestsTab() {
     return StreamBuilder<QuerySnapshot>(
